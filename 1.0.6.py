@@ -1,3 +1,6 @@
+import threading
+import time
+import win32api
 import customtkinter
 import os
 import re
@@ -380,7 +383,16 @@ class GUI(customtkinter.CTk):
         self.label_procc_turbo = customtkinter.CTkLabel(app, text='Нажмите кнопку выше для проверки\nПК на '
                                                                   'наличие вирусов')
         self.label_procc_turbo.place(x=270, y=150)
+        self.dirs()
         app.update()
+
+    def dirs(self):
+        self.drives = win32api.GetLogicalDriveStrings()
+        self.dirs = self.drives.split('\000')[:-1]
+
+        self.combo_vars = customtkinter.StringVar(value="C:/")
+        self.combobox11 = customtkinter.CTkComboBox(app, values=self.dirs, variable=self.combo_vars)
+        self.combobox11.place(x=310, y=40)
 
     def start_scanning(self):
         self.counter2 = 0
@@ -392,12 +404,13 @@ class GUI(customtkinter.CTk):
         self.label_procc_turbo2 = customtkinter.CTkLabel(app, text=f'Файлов отсканированно:{self.counter2}.'
                                                                    f' Найдено вирусов:{self.counter1}')
         self.label_procc_turbo2.place(x=270, y=250)
-        p = Process(target=self.scan_directory('C:/'))
+        p = Process(target=self.scan_directory(self.combobox11.get()))
         p.start()
         p.join()
         app.update()
 
     def scan_file(self, file_path):
+        print(self.combobox11.get())
         try:
             self.label_procc_turbo2.destroy()
             self.label_procc_turbo2 = customtkinter.CTkLabel(app, text=f'Файлов отсканированно:{self.counter2}.'
