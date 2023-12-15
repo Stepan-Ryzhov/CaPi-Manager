@@ -9,8 +9,6 @@ import shutil
 import hashlib
 from multiprocessing import Process
 
-# Выгрузка коментов происходит удачно
-
 
 def custom(a):
     customtkinter.set_appearance_mode(a)
