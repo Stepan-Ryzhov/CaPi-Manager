@@ -7,7 +7,6 @@ import platform
 import base64
 import shutil
 import hashlib
-import tkinter as tk
 from multiprocessing import Process
 
 
