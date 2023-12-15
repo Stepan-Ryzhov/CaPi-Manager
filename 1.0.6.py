@@ -1,3 +1,6 @@
+import threading
+import time
+import win32api
 import customtkinter
 import os
 import re
@@ -380,6 +383,12 @@ class GUI(customtkinter.CTk):
         self.label_procc_turbo = customtkinter.CTkLabel(app, text='Нажмите кнопку выше для проверки\nПК на '
                                                                   'наличие вирусов')
         self.label_procc_turbo.place(x=270, y=150)
+        self.drives = win32api.GetLogicalDriveStrings()
+        self.dirs = self.drives.split('\000')[:-1]
+
+        self.combo_vars = customtkinter.StringVar(value="C:/")
+        self.combobox11 = customtkinter.CTkComboBox(app, values=self.dirs, variable=self.combo_vars)
+        self.combobox11.place(x=310, y=40)
         app.update()
 
     def start_scanning(self):
@@ -392,24 +401,33 @@ class GUI(customtkinter.CTk):
         self.label_procc_turbo2 = customtkinter.CTkLabel(app, text=f'Файлов отсканированно:{self.counter2}.'
                                                                    f' Найдено вирусов:{self.counter1}')
         self.label_procc_turbo2.place(x=270, y=250)
-        p = Process(target=self.scan_directory('C:/'))
+        p = Process(target=self.scan_directory(self.combobox11.get()))
         p.start()
         p.join()
+        self.label_procc_turbo2.destroy()
+        self.label_final_scan = customtkinter.CTkLabel(app, text=f'Сканирование завершено.'
+                                                                 f' Найдено вирусов:{self.counter1}')
+        self.label_final_scan.place(x=270, y=250)
         app.update()
 
-    def scan_file(self, file_path):
+    def scan_file(self):
+        print(self.combobox11.get())
         try:
             self.label_procc_turbo2.destroy()
             self.label_procc_turbo2 = customtkinter.CTkLabel(app, text=f'Файлов отсканированно:{self.counter2}.'
                                                                        f' Найдено вирусов:{self.counter1}')
             self.label_procc_turbo2.place(x=270, y=250)
-            with open(file_path, 'rb') as file:
+            with open(self.file_path, 'rb') as file:
                 content = file.read()
                 hash_sum = hashlib.md5(content).hexdigest()
             if hash_sum in self.malicious_hashes:
                 self.counter1 += 1
             else:
                 self.counter2 += 1
+            if self.counter1 == 1:
+                self.virus_button = customtkinter.CTkButton(app, text="Удалить файл с вирусом",
+                                                            command=self.virus_remove)
+                self.virus_button.place(x=300, y=300)
         except:
             self.counter2 += 0
         app.update()
@@ -417,12 +435,15 @@ class GUI(customtkinter.CTk):
     def scan_directory(self, directory):
         for root, dirs, files in os.walk(directory):
             for file in files:
-                file_path = os.path.join(root, file)
-                p1 = Process(target=self.scan_file(file_path))
+                self.file_path = os.path.join(root, file)
+                p1 = Process(target=self.scan_file())
                 p1.start()
                 p1.join()
                 app.update()
 
+    def virus_remove(self):
+        os.remove(self.file_path)
+        self.counter1 = 0
 
 if __name__ == "__main__":
     app = GUI()
