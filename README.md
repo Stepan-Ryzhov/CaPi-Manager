@@ -12,7 +12,7 @@
 * pywin32
 * customtkinter
 * packaging
-* psuril
+* psutil
 * yadisk
 * requests
 * subprocess
