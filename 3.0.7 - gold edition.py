@@ -2,7 +2,7 @@
 import win32api
 import customtkinter
 import os
-import re
+import ctypes
 import psutil
 import gc
 import platform
@@ -44,7 +44,7 @@ class GUI(customtkinter.CTk):
             response = requests.get('https://github.com/Stepan-Ryzhov/CaPi-Manager/blob/main/test_server_capi.txt')
             a = response.json()
             b = a.get("payload").get("blob").get('rawLines')
-            print(b)
+            self.server_sign = b
             if b == ['[]'] or b == '' or b == [] or b == [''] or b == ['\r']:
                 logging.error(">>> Новые сигнатуры не найдены на GitHub. День: %s; Точная дата и время запуска: %s",
                               current_weekday, now_dt.strftime(date_format))
@@ -182,14 +182,13 @@ class GUI(customtkinter.CTk):
         self.combobox_var.set(choice)
         if choice == 'Светлая':
             custom('light')
-
-
+            self.th = 'Светлая'
             logging.info(">>> Установленна светлая тема. День: %s; Точная дата и время запуска: %s",
                          current_weekday,
                          now_dt.strftime(date_format))
         else:
             custom('dark')
-
+            self.th = 'Темная'
             logging.info(">>> Установленна темная тема. День: %s; Точная дата и время запуска: %s",
                          current_weekday,
                          now_dt.strftime(date_format))
@@ -288,12 +287,12 @@ class GUI(customtkinter.CTk):
                                        "антивирусами и не содержит каких-либо вредоносных\nфайлов"
                                        ". Команда разработчиков уверяет, что приложение\nабсолютно безопасно.\n\n\n"
                                        "2. Если я проведу очистку недавних файлов и(или) КЭШа\n"
-                                       "системы удаляться ли важные для меня файлы?\n\n"
+                                       "системы удалятся ли важные для меня файлы?\n\n"
                                        "Безусловно, нет! Наша программа удалит ненужные\n"
-                                       "системные файлы, которые загружают память и процессор\n"
-                                       "вашего компьютера\n\n\n3. Что выполняет кнопка 'Удалить повторяющиется файлы'?"
+                                       "системные файлы, которые загружают память и\nпроцессор "
+                                       "вашего компьютера.\n\n\n3. Что выполняет кнопка 'Удалить повторяющиеся файлы?"
                                        "\n\nЭта функция удаляет скачанные несколько раз файлы в\n"
-                                       "папке Загрузки, и оставляет только одну копию этого файла.\n\n\n"
+                                       "папке Загрузки, и оставляет только одну копию\nэтого файла.\n\n\n"
                                        "4. Не опасно ли удалять системные файлы? Вдруг программа\n"
                                        "удалит что-то не то, и компьютер перестанет работать?\n\n"
                                        "Программа не удаляет необходимые для работы файлы\nсистемы\n\n\n"
@@ -339,8 +338,7 @@ class GUI(customtkinter.CTk):
                                        "Нажмите кнопку ‘Начало’, затем ‘Сообщить об ошибке’,\n"
                                        "укажите ваше имя, электронную почту и кратко опишите\n"
                                        "проблему в нижнем окне. После нажатия кнопки\n‘Отправить’, "
-                                       "данные моментально будут получены\nразработчиками."
-)
+                                       "данные моментально будут получены\nразработчиками.")
         self.textbox_faq.place(x=200, y=0)
         self.abort_faq = customtkinter.CTkButton(app, text="Назад", command=self.starting, fg_color='gold', text_color='black', hover_color='#CCCC00')
         self.abort_faq.place(x=310, y=340)
@@ -384,7 +382,7 @@ class GUI(customtkinter.CTk):
         try:
             ops = platform.platform()
             proc = platform.processor()
-            build_inf = str([os.name, ops, proc, 'ver = 3.0.7']).encode()
+            build_inf = str([os.name, ops, proc, 'ver = 3.0.7ge']).encode()
             self.h = base64.b64encode(build_inf)
             logging.info(">>> Токен сгенерирован. День: %s; Точная дата и время запуска: %s", current_weekday,
                          now_dt.strftime(date_format))
@@ -924,21 +922,31 @@ class GUI(customtkinter.CTk):
                      now_dt.strftime(date_format))
 
     def damage_check(self):
-        try:
-            # if a():
+            def is_admin():
+                try:
+                    return ctypes.windll.shell32.IsUserAnAdmin()
+                except:
+                    return False
+            if is_admin():
+                subprocess.run("sfc/scannow", capture_output=True, text=True, shell=True)
                 self.file_damage_label.place_forget()
                 self.file_damage_button.place_forget()
                 self.end_font = customtkinter.CTkFont(size=14, weight='bold')
                 self.file_damage_end = customtkinter.CTkLabel(app,
-                                                                  text='Успешно проверены и заменены необходимые\nсистемные файлы',
-                                                                  font=self.end_font)
+                                                                      text='Успешно проверены и заменены необходимые\nсистемные файлы',
+                                                                      font=self.end_font)
                 self.file_damage_end.place(x=233, y=150)
-        except Exception as e:
-            self.file_damage_label.place_forget()
-            self.file_damage_end = customtkinter.CTkLabel(app,
-                                                          text='Возникла ошибка при сканировании :(\n '
-                                                               'Попробуйте позже')
-            self.file_damage_end.place(x=275, y=150)
+                logging.info(">>> Системные файлы проверены на повреждения. День: %s; Точная дата и время запуска: %s",
+                             current_weekday,
+                             now_dt.strftime(date_format))
+            else:
+                self.file_damage_label.place_forget()
+                self.file_damage_end = customtkinter.CTkLabel(app,
+                                                              text='Возникла ошибка при сканировании :(\n '
+                                                                   'Попробуйте запустить CaPi от имени администратора')
+                self.file_damage_end.place(x=230, y=150)
+                logging.error(">>> Ошибка scannow. День: %s; Точная дата и время запуска: %s",
+                              current_weekday, now_dt.strftime(date_format))
 
 
 # Запуск порграммы
